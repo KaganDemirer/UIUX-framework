@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Testseite zur Auswertung von UI und UX mit einem Framework">
+    <title>UI/UX Testseite</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script id="tracking-script" src="tracking.js"></script>
+</head>
+<body>
+    <!-- Header mit Navigation -->
+    <header>
+        <nav>
+            <ul>
+                <li><a id="home-header" href="#home">Startseite</a></li>
+                <li><a id="features-header" href="#features">Funktionen</a></li>
+                <li><a id="contact-header" href="#contact">Kontakt</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hauptbereich mit einem Hero-Sektion -->
+    <section id="home" class="hero">
+        <h1>Willkommen zur UI/UX Testseite</h1>
+        <p>Testen Sie verschiedene UI-Elemente und die Benutzererfahrung auf dieser Demo-Seite.</p>
+        <a id="home-features" href="#features" class="button">Mehr erfahren</a>
+    </section>
+
+    <!-- Funktionen Sektion mit Karten -->
+    <section id="features">
+        <h2>Funktionen</h2>
+        <div class="card-container">
+            <div class="card">
+                <h3>Responsive Design</h3>
+                <p>Diese Seite passt sich an verschiedene Bildschirmgrößen an, um die Benutzererfahrung zu optimieren.</p>
+            </div>
+            <div class="card">
+                <h3>Interaktive Elemente</h3>
+                <p>Testen Sie verschiedene interaktive Elemente wie Buttons, Links und Formulare.</p>
+            </div>
+            <div class="card">
+                <h3>Barrierefreiheit</h3>
+                <p>Die Seite wurde mit Fokus auf Barrierefreiheit entwickelt, um allen Nutzern gerecht zu werden.</p>
+            </div>
+        </div>
+    </section>
+    <!-- Funktionen Sektion mit Karten -->
+    <section id="feaftures">
+        <h2>Funktionen</h2>
+        <div class="card-container">
+            <div class="card">
+                <h3>Responsive Design</h3>
+                <p>Diese Seite passt sich an verschiedene Bildschirmgrößen an, um die Benutzererfahrung zu optimieren.</p>
+            </div>
+            <div class="card">
+                <h3>Interaktive Elemente</h3>
+                <p>Testen Sie verschiedene interaktive Elemente wie Buttons, Links und Formulare.</p>
+            </div>
+            <div class="card">
+                <h3>Barrierefreiheit</h3>
+                <p>Die Seite wurde mit Fokus auf Barrierefreiheit entwickelt, um allen Nutzern gerecht zu werden.</p>
+            </div>
+        </div>
+    </section>
+    <!-- Funktionen Sektion mit Karten -->
+    <section id="featurses">
+        <h2>Funktionen</h2>
+        <div class="card-container">
+            <div class="card">
+                <h3>Responsive Design</h3>
+                <p>Diese Seite passt sich an verschiedene Bildschirmgrößen an, um die Benutzererfahrung zu optimieren.</p>
+            </div>
+            <div class="card">
+                <h3>Interaktive Elemente</h3>
+                <p>Testen Sie verschiedene interaktive Elemente wie Buttons, Links und Formulare.</p>
+            </div>
+            <div class="card">
+                <h3>Barrierefreiheit</h3>
+                <p>Die Seite wurde mit Fokus auf Barrierefreiheit entwickelt, um allen Nutzern gerecht zu werden.</p>
+            </div>
+        </div>
+    </section>
+    <!-- Funktionen Sektion mit Karten -->
+    <section id="feature2s">
+        <h2>Funktionen</h2>
+        <div class="card-container">
+            <div class="card">
+                <h3>Responsive Design</h3>
+                <p>Diese Seite passt sich an verschiedene Bildschirmgrößen an, um die Benutzererfahrung zu optimieren.</p>
+            </div>
+            <div class="card">
+                <h3>Interaktive Elemente</h3>
+                <p>Testen Sie verschiedene interaktive Elemente wie Buttons, Links und Formulare.</p>
+            </div>
+            <div class="card">
+                <h3>Barrierefreiheit</h3>
+                <p>Die Seite wurde mit Fokus auf Barrierefreiheit entwickelt, um allen Nutzern gerecht zu werden.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kontaktformular Sektion -->
+    <section id="contact">
+        <h2>Kontakt</h2>
+        <form action="#" method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="email">E-Mail:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="message">Nachricht:</label>
+            <textarea id="message" name="message" required></textarea>
+
+            <button id="submit" type="submit" class="button">Absenden</button>
+        </form>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 UI/UX
+        </p>
+    </footer>
+</body>
