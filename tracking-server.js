@@ -41,8 +41,12 @@ function initializeTrackingServer(io, app, port) {
     }
 
     io.on('connection', (socket) => {
-        console.log('Ein Benutzer hat sich verbunden');
-      
+
+        socket.on('sessionID', (sessionID) => {
+            socket.sessionID = sessionID;
+            console.log('Ein Benutzer hat sich verbunden:', sessionID);
+        });
+
         socket.on('trackData', (data) => {
             console.log('Tracking-Daten empfangen:', data);
           
@@ -65,7 +69,7 @@ function initializeTrackingServer(io, app, port) {
         });
 
         socket.on('disconnect', () => {
-            console.log('Ein Benutzer hat die Verbindung getrennt');
+            console.log('Ein Benutzer hat die Verbindung getrennt:', socket.sessionID);
         });
     });
 
@@ -147,6 +151,7 @@ function initializeTrackingServer(io, app, port) {
                         width: window.innerWidth,
                         height: window.innerHeight
                     },
+                    session_id: cookiesGet('sessionID'),
                     id: ID,
                     previousID: previousID,
                     nextID: null
@@ -165,6 +170,10 @@ function initializeTrackingServer(io, app, port) {
             document.addEventListener('click', trackClick);
             
             socket.on('connect', () => {
+                const sessionID = cookiesGet('sessionID') || createID();
+                cookiesSet('sessionID', sessionID, 999999999);
+                // Send session ID to server
+                socket.emit('sessionID', sessionID);
                 console.log('Connected to server');
             });
             
