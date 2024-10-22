@@ -223,6 +223,11 @@ html_monitoring = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Monitoring für UIUX-Framework">
     <style>
+        * {
+            font-family: Arial, sans-serif;
+            color: #373D55;
+        }
+
         body, html {
             margin: 0;
             padding: 0;
@@ -251,11 +256,11 @@ html_monitoring = `<!DOCTYPE html>
 
         #uiux-controls {
             flex: 1;
-            background: rgba(0, 0, 0, 0.5);
+            background: #FFF;
             color: white;
-            padding: 20px;
             box-sizing: border-box;
             overflow-y: auto;
+            border-left: 0.25em solid #373D55;
         }
 
         .linked {
@@ -327,8 +332,41 @@ html_monitoring = `<!DOCTYPE html>
 
         h1 {
             margin-top: 0;
-            font-size: 1.5em;
+            font-size: 2em;
+            width: 100%;
+            text-align: center;
         }
+
+        h2 {
+            font-size: 1.25em;
+            margin-top: 0;
+            margin-bottom: 1em;
+            width: 100%;
+            border-bottom: 1px solid #6B6C6C;
+        }
+
+        .card {
+            background: #f9f9f9;
+            padding: 0.5em;
+            margin: 1em;
+            border-radius: 0.5em;
+            box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
+        }
+
+        .card_information {
+            font-size: 0.5em;
+            color: #6B6C6C;
+            text-align: right;
+            width: 100%;
+        }
+
+
+        .header {
+            width: 100%;
+            margin-bottom: 1em;
+        }
+
+
     </style>
     <script>
         let clickedObject = null;
@@ -668,6 +706,39 @@ html_monitoring = `<!DOCTYPE html>
                 }, true);
             });
 
+            //get all elements with the class 'further_information'
+            const further_information = document.querySelectorAll('.further_information');
+            //hide all elements with the class 'further_information'
+            further_information.forEach(info => {
+                info.style.display = 'none';
+            }
+            );
+            //get all elements with the class 'card'
+            const cards = document.querySelectorAll('.card');
+            //add click event listener to each card
+            cards.forEach(card => {
+                card.addEventListener('click', event => {
+                    //get all elements inside the card with the class 'further_information'
+                    const further_information = card.querySelectorAll('.further_information');
+                    //toggle the display of the elements
+                    further_information.forEach(info => {
+                        if (info.style.display === 'none') {
+                            info.style.display = 'block';
+                        } else {
+                            info.style.display = 'none';
+                        }
+                    });
+                    //get the element with the class 'card_information'
+                    const card_information = card.querySelector('.card_information');
+                    //toggle the display of the element
+                    if (card_information.style.display === 'none') {
+                        card_information.style.display = 'block';
+                    } else {
+                        card_information.style.display = 'none';
+                    }
+                });
+            });
+
             disableTracking();
             addControlledClicking();
             setInterval(initHeatmap, 1);
@@ -682,16 +753,32 @@ html_monitoring = `<!DOCTYPE html>
             <canvas id="heatmap"></canvas>
         </div>
         <div id="uiux-controls">
-            <h1>UIUX Monitoring</h1>
-            <p><strong>Path:</strong> <span id="path">-</span></p>
-            <p><strong>ID:</strong> <span id="id">-</span></p>
-            <p><strong>Class:</strong> <span id="class">-</span></p>
-            <p><strong>Clicks:</strong> <span id="clicks">-</span></p>
-            <p><strong>Fastest time to click element:</strong> <span id="fastest-time">-</span> s</p>
-            <p><strong>Average time to click element:</strong> <span id="average-time">-</span> s</p>
-            <p><strong>Slowest time to click element:</strong> <span id="slowest-time">-</span> s</p>
-            <p><strong>Most came from:</strong> <span id="most-clicked-before">-</span></p>
-            <p><strong>Most go to:</strong> <span id="most-clicked-after">-</span></p>
+            <div class="header">
+                <h1>UIUX Monitoring</h1>
+            </div>
+
+            <div class="information_card card">
+                <h2>Overview</h2>
+                <input type="text" class="further_information text-input-url" id="iframe_url" value="" disabled>
+                <input type="text" class="further_information text-input-url" id="iframe_heatmap_url" value="">
+
+                <p class="card_information">click on card to get more information</p>
+            </div>
+
+            <div class="information_card card">
+                <h2>Element Information</h2>
+                <p><strong>Path:</strong> <span id="path">-</span></p>
+                <p class="further_information"><strong>ID:</strong> <span id="id">-</span></p>
+                <p class="further_information"><strong>Class:</strong> <span id="class">-</span></p>
+                <p><strong>Clicks:</strong> <span id="clicks">-</span></p>
+                <p class="further_information"><strong>Fastest time to click element:</strong> <span id="fastest-time">-</span> s</p>
+                <p><strong>Average time to click element:</strong> <span id="average-time">-</span> s</p>
+                <p class="further_information"><strong>Slowest time to click element:</strong> <span id="slowest-time">-</span> s</p>
+                <p class="further_information"><strong>Most came from:</strong> <span id="most-clicked-before">-</span></p>
+                <p class="further_information"><strong>Most go to:</strong> <span id="most-clicked-after">-</span></p>
+
+                <p class="card_information">click on card to get more information</p>
+            </div>
         </div>
     </div>
 </body>
