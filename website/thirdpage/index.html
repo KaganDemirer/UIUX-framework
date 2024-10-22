@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script id="tracking-script" src="tracking.js"></script>
+</head>
+<body>
+    <div class="image-gallery"></div>
+        <img src="https://fastly.picsum.photos/id/866/200/300.jpg?hmac=rcadCENKh4rD6MAp6V_ma-AyWv641M4iiOpe1RyFHeI" class="hover-image" onclick="addCoins(1)">
+        <img stc="https://fastly.picsum.photos/id/623/200/300.jpg?hmac=2LlPuWimnDeGk-zZPKKgRVozFd3c-26BinXWcxfTtXo" class="hover-image" onclick="addCoins(1)">
+    </div>
+
+    <p id="coin-counter">Coins: 0</p>
+
+    <script>
+        let coins = 0;
+
+        function addCoins(amount) {
+            coins += amount;
+            document.getElementById('coin-counter').innerText = 'Coins: ' + coins;
+        }
+    </script>
+
+    <style>
+        .image-gallery {
+            display: flex;
+            gap: 10px;
+        }
+
+        .hover-image {
+            transition: transform 0.3s;
+        }
+
+        .hover-image:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</body>
+</html>
