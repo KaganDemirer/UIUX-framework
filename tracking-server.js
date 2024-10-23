@@ -360,11 +360,17 @@ html_monitoring = `<!DOCTYPE html>
             margin: 1em;
             border-radius: 0.5em;
             box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
+            transition: all 0.1s;
+        }
+
+        .card:hover {
+            box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+            transition: all 0.2s;
         }
 
         .card_information {
             font-size: 0.5em;
-            color: #6B6C6C;
+            color: #a3a3a3;
             text-align: right;
             width: 100%;
         }
@@ -373,6 +379,12 @@ html_monitoring = `<!DOCTYPE html>
         .header {
             width: 100%;
             margin-bottom: 1em;
+            margin-top: 0.5em;
+        }
+
+        .header img {
+            width: 4em;
+            height: 4em;
         }
 
 
