@@ -231,156 +231,11 @@ html_monitoring = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Monitoring für UIUX-Framework">
-    <style>
-        * {
-            font-family: Arial, sans-serif;
-            color: #373D55;
-        }
-
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .uiux {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        #uiux-frame {
-            flex: 4;
-            position: relative;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        #uiux-frame iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        #uiux-controls {
-            flex: 1;
-            background: #FFF;
-            color: white;
-            box-sizing: border-box;
-            overflow-y: auto;
-            border-left: 0.25em solid #373D55;
-        }
-
-        .linked {
-            color: lightblue;
-            cursor: pointer;
-        }
-
-        .linked:hover {
-            text-decoration: underline;
-        }
-
-        #heatmap {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .element-highlight {
-            position: absolute;
-            border: 2px solid rgba(128, 128, 128, 0.8);
-            background: rgba(128, 128, 128, 0.1);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .element-highlight-before {
-            position: absolute;
-            border: 2px solid rgba(0, 255, 0, 0.8);
-            background: rgba(0, 255, 0, 0.1);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .element-highlight-after {
-            position: absolute;
-            border: 2px solid rgba(255, 0, 0, 0.8);
-            background: rgba(255, 0, 0, 0.1);
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .element-popup {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 3;
-            max-width: 300px;
-            word-wrap: break-word;
-        }
-
-        .element-popup::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 0 10px 10px 10px;
-            border-style: solid;
-            border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
-        }
-
-        h1 {
-            margin-top: 0;
-            font-size: 2em;
-            width: 100%;
-            text-align: center;
-        }
-
-        h2 {
-            font-size: 1.25em;
-            margin-top: 0;
-            margin-bottom: 1em;
-            width: 100%;
-            border-bottom: 1px solid #6B6C6C;
-        }
-
-        .card {
-            background: #f9f9f9;
-            padding: 0.5em;
-            margin: 1em;
-            border-radius: 0.5em;
-            box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
-        }
-
-        .card_information {
-            font-size: 0.5em;
-            color: #6B6C6C;
-            text-align: right;
-            width: 100%;
-        }
-
-
-        .header {
-            width: 100%;
-            margin-bottom: 1em;
-        }
-
-
-    </style>
     <script>
         let clickedObject = null;
         let mostClickedBefore = null;
         let mostClickedAfter = null;
+        let heatmapURL = "";
         let grid = [];
         const gridSize = 5;
         let highlightElement = null;
@@ -403,6 +258,28 @@ html_monitoring = `<!DOCTYPE html>
                 highlightElementTo = document.createElement('div');
                 highlightElementTo.className = 'element-highlight-after';
                 document.body.appendChild(highlightElementTo);
+            }
+
+            function matchUrlPattern(pattern, url) {
+                // Escape special regex characters except *
+                const escapeRegex = (str) => str.replace(/[.+?^$\{\}()|[\]\\\\]/g, '\\\\$&');
+                
+                // Convert pattern to regex
+                // Replace * with regex pattern that requires at least one character except /
+                const regexPattern = escapeRegex(pattern).replace(/\\*/g, '[^/]+');
+                
+                // Create RegExp object with ^$ to ensure full string match
+                const regex = new RegExp(\`^\${regexPattern}$\`);
+                
+                // Zusätzliche Validierung: Prüfe ob die Anzahl der Pfadsegmente übereinstimmt
+                const patternSegments = pattern.split('/').length;
+                const urlSegments = url.split('/').length;
+                
+                if (patternSegments !== urlSegments) {
+                    return false;
+                }
+                
+                return regex.test(url);
             }
 
             function getMostClickedBefore(heatMapData, clickedObjectData) {
@@ -438,8 +315,6 @@ html_monitoring = `<!DOCTYPE html>
 
 
             async function updateInformation(target) {
-
-                const iframe_url = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
                 const heatmapData = await fetchHeatmapData();
                 const clickedObjectMap = {
                     tagName: target.tagName,
@@ -447,12 +322,12 @@ html_monitoring = `<!DOCTYPE html>
                     className: target.className
                 };
                 const clickedObjectData = heatmapData.filter(item => {
-                    return clickedObjectMap.id === item.target.id && clickedObjectMap.tagName === item.target.tagName && iframe_url === item.url;
+                    return clickedObjectMap.id === item.target.id && clickedObjectMap.tagName === item.target.tagName && matchUrlPattern(heatmapURL, item.url);
                 });
                 const times = clickedObjectData.map(item => item.pathDuration);
-                const fastestTime = Math.min(...times);
-                const averageTime = times.reduce((a, b) => a + b, 0) / times.length;
-                const slowestTime = Math.max(...times);
+                const fastestTime = times.length ? Math.min(...times) : 0;
+                const averageTime = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+                const slowestTime = times.length ? Math.max(...times) : 0;
                 const clicks = clickedObjectData.length;
                 mostClickedBefore = getMostClickedBefore(heatmapData, clickedObjectData);
                 mostClickedAfter = getMostClickedAfter(heatmapData, clickedObjectData);
@@ -623,8 +498,7 @@ html_monitoring = `<!DOCTYPE html>
                     if (clickedObject === null) {
                         return;
                     }
-                    const iframe_url = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
-                    if (clickedObject.id !== item.target.id || clickedObject.tagName !== item.target.tagName || item.url !== iframe_url) {
+                    if (clickedObject.id !== item.target.id || clickedObject.tagName !== item.target.tagName || !matchUrlPattern(heatmapURL, item.url)) {
                         return;
                     }
                     const { clickPosition, resolution, path } = item;
@@ -727,6 +601,10 @@ html_monitoring = `<!DOCTYPE html>
             //add click event listener to each card
             cards.forEach(card => {
                 card.addEventListener('click', event => {
+                    // if clicked on input in the card return
+                    if (event.target.tagName === 'INPUT') {
+                        return;
+                    }
                     //get all elements inside the card with the class 'further_information'
                     const further_information = card.querySelectorAll('.further_information');
                     //toggle the display of the elements
@@ -747,6 +625,18 @@ html_monitoring = `<!DOCTYPE html>
                     }
                 });
             });
+
+            // event Listener on iframe url change
+            iframe.addEventListener('load', () => {
+                document.getElementById('iframe_url').value = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
+                document.getElementById('iframe_heatmap_url').value = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
+                heatmapURL = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
+            });
+
+            document.getElementById('iframe_heatmap_url').addEventListener('change', () => {
+                heatmapURL = document.getElementById('iframe_heatmap_url').value;
+            });
+
 
             disableTracking();
             addControlledClicking();
@@ -791,4 +681,149 @@ html_monitoring = `<!DOCTYPE html>
         </div>
     </div>
 </body>
+<style>
+* {
+    font-family: Arial, sans-serif;
+    color: #373D55;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.uiux {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+#uiux-frame {
+    flex: 4;
+    position: relative;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+#uiux-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+#uiux-controls {
+    flex: 1;
+    background: #FFF;
+    color: white;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border-left: 0.25em solid #373D55;
+}
+
+.linked {
+    color: lightblue;
+    cursor: pointer;
+}
+
+.linked:hover {
+    text-decoration: underline;
+}
+
+#heatmap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.element-highlight {
+    position: absolute;
+    border: 2px solid rgba(128, 128, 128, 0.8);
+    background: rgba(128, 128, 128, 0.1);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.element-highlight-before {
+    position: absolute;
+    border: 2px solid rgba(0, 255, 0, 0.8);
+    background: rgba(0, 255, 0, 0.1);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.element-highlight-after {
+    position: absolute;
+    border: 2px solid rgba(255, 0, 0, 0.8);
+    background: rgba(255, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.element-popup {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 3;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+.element-popup::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 10px 10px;
+    border-style: solid;
+    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+h1 {
+    margin-top: 0;
+    font-size: 2em;
+    width: 100%;
+    text-align: center;
+}
+
+h2 {
+    font-size: 1.25em;
+    margin-top: 0;
+    margin-bottom: 1em;
+    width: 100%;
+    border-bottom: 1px solid #6B6C6C;
+}
+
+.card {
+    background: #f9f9f9;
+    padding: 0.5em;
+    margin: 1em;
+    border-radius: 0.5em;
+    box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
+}
+
+.card_information {
+    font-size: 0.5em;
+    color: #6B6C6C;
+    text-align: right;
+    width: 100%;
+}
+
+
+.header {
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+</style>
 </html>`;

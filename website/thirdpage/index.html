@@ -6,37 +6,58 @@
     <title>Document</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script id="tracking-script" src="tracking.js"></script>
-</head>
-<body>
-    <div class="image-gallery"></div>
-        <img src="https://fastly.picsum.photos/id/866/200/300.jpg?hmac=rcadCENKh4rD6MAp6V_ma-AyWv641M4iiOpe1RyFHeI" class="hover-image" onclick="addCoins(1)">
-        <img stc="https://fastly.picsum.photos/id/623/200/300.jpg?hmac=2LlPuWimnDeGk-zZPKKgRVozFd3c-26BinXWcxfTtXo" class="hover-image" onclick="addCoins(1)">
-    </div>
-
-    <p id="coin-counter">Coins: 0</p>
-
-    <script>
-        let coins = 0;
-
-        function addCoins(amount) {
-            coins += amount;
-            document.getElementById('coin-counter').innerText = 'Coins: ' + coins;
-        }
-    </script>
-
     <style>
-        .image-gallery {
-            display: flex;
-            gap: 10px;
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
         }
 
-        .hover-image {
-            transition: transform 0.3s;
+        h1 {
+            color: #333;
         }
 
-        .hover-image:hover {
-            transform: scale(1.1);
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
         }
     </style>
+</head>
+<body>
+    <h1>ABCDEF</h1>
+    <p>Click the button below to see a random message:</p>
+    <button onclick="showRandomMessage()">Click Me!</button>
+    <p id="message"></p>
+
+    <script>
+        function showRandomMessage() {
+            const messages = [
+                "Hello, world!",
+                "You are awesome!",
+                "Have a great day!",
+                "Keep up the good work!",
+                "Coding is fun!"
+            ];
+            const randomIndex = Math.floor(Math.random() * messages.length);
+            document.getElementById("message").innerText = messages[randomIndex];
+        }
+    </script>
 </body>
 </html>
