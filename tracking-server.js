@@ -231,6 +231,164 @@ html_monitoring = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Monitoring für UIUX-Framework">
+    <style>
+        * {
+            font-family: Arial, sans-serif;
+            color: #373D55;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .uiux {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #uiux-frame {
+            flex: 4;
+            position: relative;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #uiux-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #uiux-controls {
+            flex: 1;
+            background: #FFF;
+            color: white;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-left: 0.25em solid #373D55;
+        }
+
+        .linked {
+            color: lightblue;
+            cursor: pointer;
+        }
+
+        .linked:hover {
+            text-decoration: underline;
+        }
+
+        #heatmap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .element-highlight {
+            position: absolute;
+            border: 2px solid rgba(128, 128, 128, 0.8);
+            background: rgba(128, 128, 128, 0.1);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .element-highlight-before {
+            position: absolute;
+            border: 2px solid rgba(0, 255, 0, 0.8);
+            background: rgba(0, 255, 0, 0.1);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .element-highlight-after {
+            position: absolute;
+            border: 2px solid rgba(255, 0, 0, 0.8);
+            background: rgba(255, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .element-popup {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 3;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .element-popup::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 10px 10px 10px;
+            border-style: solid;
+            border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 2em;
+            width: 100%;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.25em;
+            margin-top: 0;
+            margin-bottom: 1em;
+            width: 100%;
+            border-bottom: 1px solid #6B6C6C;
+        }
+
+        .card {
+            background: #f9f9f9;
+            padding: 0.5em;
+            margin: 1em;
+            border-radius: 0.5em;
+            box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
+            transition: all 0.1s;
+        }
+
+        .card:hover {
+            box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+            transition: all 0.2s;
+        }
+
+        .card_information {
+            font-size: 0.5em;
+            color: #a3a3a3;
+            text-align: right;
+            width: 100%;
+        }
+
+
+        .header {
+            width: 100%;
+            margin-bottom: 1em;
+            margin-top: 0.5em;
+        }
+
+        .header img {
+            width: 4em;
+            height: 4em;
+        }
+
+
+    </style>
     <script>
         let clickedObject = null;
         let mostClickedBefore = null;
