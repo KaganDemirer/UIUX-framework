@@ -207,9 +207,7 @@ function initializeTrackingServer(io, app, port) {
 
             function addControlledClicking() {
                 document.addEventListener('click', (event) => {
-                    console.log('Click event enabled');
                     if (event.target !== enabledButton) {
-                        console.log('Click event disabled');
                         enabledButton = event.target;
                         event.preventDefault();
                         event.stopImmediatePropagation();
@@ -417,6 +415,7 @@ html_monitoring = `<!DOCTYPE html>
         let highlightElement = null;
         let highlightElementFrom = null;
         let highlightElementTo = null;
+        let clicksStatistics = {};
 
         // Wait for the DOM to be loaded
         document.addEventListener('DOMContentLoaded', () => {
@@ -487,6 +486,24 @@ html_monitoring = `<!DOCTYPE html>
                 const mostClickedID = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
                 const mostClicked = after.find(item => item.id === mostClickedID);
                 return mostClicked;
+            }
+
+            function countClicksOnElement(heatMapData) {
+                // count the clicks on each element on the heatmapURL
+                clicksStatistics = {};
+                heatMapData.forEach(item => {
+                    if (!matchUrlPattern(heatmapURL, item.url)) {
+                        return;
+                    }
+                    const key = \`\${item.target.id}\`;
+                    clicksStatistics[key] = {
+                        "tagName": item.target.tagName,
+                        "id": item.target.id,
+                        "path": item.target.path,
+                        "class": item.target.className,
+                        "clicks": (clicksStatistics[key]?.clicks || 0) + 1
+                    }
+                });
             }
 
 
@@ -587,15 +604,6 @@ html_monitoring = `<!DOCTYPE html>
                     const iframeWindow = iframe.contentWindow;
                     if (iframeWindow.disableTracking) {
                         iframeWindow.disableTracking();
-                    }
-                });
-            }
-
-            function addControlledClicking() {
-                iframe.addEventListener('load', () => {
-                    const iframeWindow = iframe.contentWindow;
-                    if (iframeWindow.addControlledClicking) {
-                        iframeWindow.addControlledClicking();
                     }
                 });
             }
@@ -756,20 +764,6 @@ html_monitoring = `<!DOCTYPE html>
                 }
             }
 
-            // Create highlight elements
-            createHighlight();
-
-            // Add click event listener to the iframe
-            iframe.addEventListener('load', () => {
-                iframe.contentWindow.document.addEventListener('click', event => {
-                    const object = getClickedObject(event);
-                    if (object) {
-                        clickedObject = object;
-                        updateInformation(event.target);
-                    }
-                }, true);
-            });
-
             //get all elements with the class 'further_information'
             const further_information = document.querySelectorAll('.further_information');
             //hide all elements with the class 'further_information'
@@ -809,22 +803,129 @@ html_monitoring = `<!DOCTYPE html>
 
             // event Listener on iframe url change
             iframe.addEventListener('load', () => {
-                document.getElementById('iframe_url').value = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
-                document.getElementById('iframe_heatmap_url').value = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
-                heatmapURL = iframe.contentWindow.location.href.split('?')[0].split('#')[0];
+                const iframeWindow = iframe.contentWindow;
+                iframeWindow.document.addEventListener('click', event => {
+                    const object = getClickedObject(event);
+                    if (object) {
+                        clickedObject = object;
+                        updateInformation(event.target);
+                    }
+                }, true);
+                if (iframeWindow.disableTracking) {
+                    iframeWindow.disableTracking();
+                }
+                if (iframeWindow.addControlledClicking) {
+                    iframeWindow.addControlledClicking();
+                }
+                document.getElementById('iframe_url').value = iframeWindow.location.href.split('?')[0].split('#')[0];
+                document.getElementById('iframe_heatmap_url').value = iframeWindow.location.href.split('?')[0].split('#')[0];
+                heatmapURL = iframeWindow.location.href.split('?')[0].split('#')[0];
+                clearChart();
+                countClicksOnElement(heatmapData);
+                createBarChart(clicksStatistics);
             });
 
             document.getElementById('iframe_heatmap_url').addEventListener('change', () => {
                 heatmapURL = document.getElementById('iframe_heatmap_url').value;
+                clearChart();
+                countClicksOnElement(heatmapData);
+                createBarChart(clicksStatistics);
             });
 
             document.getElementById('iframe_url').addEventListener('change', () => {
                 iframe.src = document.getElementById('iframe_url').value;
             });
 
+            function clearChart() {
+                const container = document.getElementById('chart');
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+            }
 
-            disableTracking();
-            addControlledClicking();
+            function createBarChart(data) {
+                const container = document.getElementById('chart');
+                const maxValue = Math.max(...Object.values(data).map(item => item.clicks));
+                
+                // Sortieren der Daten nach Werten (absteigend)
+                sortedData = Object.entries(data).sort((a, b) => b[1].clicks - a[1].clicks);
+                
+                sortedData.splice(5);
+                sortedData.forEach(([key, value]) => {
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'bar-container';
+                    
+                    const bar = document.createElement('div');
+                    const label = document.createElement('span');
+                    const popup = document.createElement('div');
+                    
+                    bar.className = 'bar';
+                    label.className = 'bar-label';
+                    popup.className = 'popup';
+                    
+                    const percentage = (value.clicks / maxValue) * 100;
+                    bar.style.width = \`\${percentage}%\`;
+                    
+                    label.textContent = key;
+                    
+                    // Popup Inhalt
+                    popup.innerHTML = \`
+                        <div class="popup-row">
+                            <span class="popup-label">Path:</span>
+                            <span class="popup-value">\${value.path}</span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">ID:</span>
+                            <span class="popup-value">\${value.id}</span>
+                        </div>
+                        <div>
+                            <span class="popup-label">Class:</span>
+                            <span class="popup-value">\${value.class}</span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">ClicksAmount:</span>
+                            <span class="popup-value">\${value.clicks}</span>
+                        </div>
+                    \`;
+                    
+                    // Event Listener für Hover
+                    bar.addEventListener('mousemove', (e) => {
+                        popup.style.display = 'block';
+                        
+                        // Position des Popups berechnen
+                        const rect = bar.getBoundingClientRect();
+                        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                        
+                        // Popup über dem Balken positionieren
+                        popup.style.left = \`\${e.pageX - popup.offsetWidth/2}px\`;
+                        popup.style.top = \`\${rect.top + scrollTop - popup.offsetHeight - 10}px\`;
+                    });
+                    
+                    bar.addEventListener('mouseleave', () => {
+                        popup.style.display = 'none';
+                    });
+
+                    bar.addEventListener('click', () => {
+                        clickedObject = {
+                            path: value.path,
+                            tagName: value.tagName,
+                            id: value.id,
+                            className: value.class,
+                        };
+                        const element = iframe.contentWindow.document.querySelector(value.path);
+                        updateInformation(element);
+                        // scroll to elem
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    });
+                    
+                    bar.appendChild(label);
+                    barContainer.appendChild(bar);
+                    barContainer.appendChild(popup);
+                    container.appendChild(barContainer);
+                });
+            }
+
+            createHighlight();
             initHeatmap();
             setInterval(updateHeatmap, 1);
         });
@@ -863,6 +964,11 @@ html_monitoring = `<!DOCTYPE html>
                 <p class="further_information"><strong>Most go to:</strong> <span id="most-clicked-after">-</span></p>
 
                 <p class="card_information">click on card to get more information</p>
+            </div>
+
+            <div class="information_card card">
+                <h2>Clicks Statistics</h2>
+                <div class="chart-container" id="chart"></div>
             </div>
         </div>
     </div>
@@ -1003,6 +1109,70 @@ h2 {
     color: #6B6C6C;
     text-align: right;
     width: 100%;
+}
+.chart-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 800px;
+}
+
+.bar {
+    height: 30px;
+    background-color: #4CAF50;
+    margin: 5px 0;
+    transition: width 0.3s ease;
+    position: relative;
+    border-radius: 3px;
+}
+
+.bar-label {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 14px;
+}
+
+.bar-value {
+    position: absolute;
+    right: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #333;
+    font-size: 14px;
+}
+
+.popup {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 100;
+    min-width: 200px;
+    pointer-events: none;
+}
+
+.popup-row {
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.popup-label {
+    color: #666;
+    font-weight: bold;
+}
+
+.popup-value {
+    color: #333;
+}
+
+.bar {
+    cursor: pointer;
 }
 
 
