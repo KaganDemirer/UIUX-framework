@@ -89,7 +89,7 @@ function initializeTrackingServer(io, app, port) {
     // Dynamisch generiertes Tracking-Skript
     app.get('/tracking.js', (req, res) => {
         const trackingScript = `
-            const socket = io('http://localhost:${port}', {
+            const tracking_socket = io('http://localhost:${port}', {
                 transports: ['websocket']
             });
             
@@ -103,6 +103,21 @@ function initializeTrackingServer(io, app, port) {
                     y: event.clientY + window.scrollY,
                     time: Date.now()
                 });
+            }
+                
+            function getElementPath(element) {
+                let path = [];
+                while (element && element.tagName) {
+                    let selector = element.tagName.toLowerCase();
+                    if (element.id) {
+                        selector += \`#\${element.id}\`;
+                    } else if (element.className) {
+                        selector += \`.\${element.className.split(' ').join('.')}\`;
+                    }
+                    path.unshift(selector);
+                    element = element.parentElement;
+                }
+                return path.join(' > ');
             }
 
             function createID() {
@@ -136,6 +151,7 @@ function initializeTrackingServer(io, app, port) {
                 const ID = createID();
                 const data = {
                     target: {
+                        path: getElementPath(event.target),
                         tagName: event.target.tagName,
                         id: event.target.id,
                         className: event.target.className
@@ -157,8 +173,8 @@ function initializeTrackingServer(io, app, port) {
                     nextID: null
                 };
 
-                if (previousID) socket.emit('replaceNextID', previousID, ID);
-                socket.emit('trackData', data);
+                if (previousID) tracking_socket.emit('replaceNextID', previousID, ID);
+                tracking_socket.emit('trackData', data);
                 cookiesSet('previousClickedID', ID, 5);
             
                 // Reset for next path
@@ -169,15 +185,15 @@ function initializeTrackingServer(io, app, port) {
             document.addEventListener('mousemove', trackMouseMovement);
             document.addEventListener('click', trackClick);
             
-            socket.on('connect', () => {
+            tracking_socket.on('connect', () => {
                 const sessionID = cookiesGet('sessionID') || createID();
                 cookiesSet('sessionID', sessionID, 999999999);
                 // Send session ID to server
-                socket.emit('sessionID', sessionID);
+                tracking_socket.emit('sessionID', sessionID);
                 console.log('Connected to server');
             });
             
-            socket.on('connect_error', (error) => {
+            tracking_socket.on('connect_error', (error) => {
                 console.error('Connection error:', error);
             });
 
@@ -185,7 +201,7 @@ function initializeTrackingServer(io, app, port) {
                 document.removeEventListener('mousemove', trackMouseMovement);
                 document.removeEventListener('click', trackClick);
                 document.getElementById('tracking-script').remove();
-                socket.disconnect();
+                tracking_socket.disconnect();
                 console.log('Tracking disabled');
             }
 
@@ -203,6 +219,7 @@ function initializeTrackingServer(io, app, port) {
 
             function getClickedObject(event) {
                 const clickedObject = {
+                    path: getElementPath(event.target),
                     tagName: event.target.tagName,
                     id: event.target.id,
                     className: event.target.className
@@ -394,6 +411,7 @@ html_monitoring = `<!DOCTYPE html>
         let mostClickedBefore = null;
         let mostClickedAfter = null;
         let heatmapURL = "";
+        let heatmapData = null;
         let grid = [];
         const gridSize = 5;
         let highlightElement = null;
@@ -473,14 +491,14 @@ html_monitoring = `<!DOCTYPE html>
 
 
             async function updateInformation(target) {
-                const heatmapData = await fetchHeatmapData();
                 const clickedObjectMap = {
+                    path: getElementPath(target),
                     tagName: target.tagName,
                     id: target.id,
                     className: target.className
                 };
                 const clickedObjectData = heatmapData.filter(item => {
-                    return clickedObjectMap.id === item.target.id && clickedObjectMap.tagName === item.target.tagName && matchUrlPattern(heatmapURL, item.url);
+                    return clickedObjectMap.path === item.target.path && clickedObjectMap.id === item.target.id && clickedObjectMap.tagName === item.target.tagName && matchUrlPattern(heatmapURL, item.url);
                 });
                 const times = clickedObjectData.map(item => item.pathDuration);
                 const fastestTime = times.length ? Math.min(...times) : 0;
@@ -493,15 +511,14 @@ html_monitoring = `<!DOCTYPE html>
 
                 
                 // Update popup content and position
-                const path = getElementPath(target);
-                document.getElementById('path').textContent = path;
+                document.getElementById('path').textContent = clickedObjectMap.path;
                 document.getElementById('id').textContent = target.id || '-';
                 document.getElementById('class').textContent = target.className || '-';
                 document.getElementById('clicks').textContent = clicks;
                 document.getElementById('fastest-time').textContent = (fastestTime / 1000).toFixed(2);
                 document.getElementById('average-time').textContent = (averageTime / 1000).toFixed(2);
                 document.getElementById('slowest-time').textContent = (slowestTime / 1000).toFixed(2);
-                document.getElementById('most-clicked-before').textContent = mostClickedBefore ? \`\${mostClickedBefore.target.tagName} #\${mostClickedBefore.target.id}\` : 'Keine';
+                document.getElementById('most-clicked-before').textContent = mostClickedBefore ? \`\${mostClickedAfter.target.path}\` : 'Keine';
                 if (mostClickedBefore) {
                     document.getElementById('most-clicked-before').classList.add('linked');
                 } else {
@@ -515,7 +532,7 @@ html_monitoring = `<!DOCTYPE html>
                     let element = iframe.contentWindow.document.querySelector(getElementPath(mostClickedBefore.target));
                     updateInformation(element);
                 };
-                document.getElementById('most-clicked-after').textContent = mostClickedAfter ? \`\${mostClickedAfter.target.tagName} #\${mostClickedAfter.target.id}\` : 'Keine';
+                document.getElementById('most-clicked-after').textContent = mostClickedAfter ? \`\${mostClickedAfter.target.path}\` : 'Keine';
                 if (mostClickedAfter) {
                     document.getElementById('most-clicked-after').classList.add('linked');
                 } else {
@@ -656,7 +673,7 @@ html_monitoring = `<!DOCTYPE html>
                     if (clickedObject === null) {
                         return;
                     }
-                    if (clickedObject.id !== item.target.id || clickedObject.tagName !== item.target.tagName || !matchUrlPattern(heatmapURL, item.url)) {
+                    if (clickedObject.path !== item.target.path || clickedObject.id !== item.target.id || clickedObject.tagName !== item.target.tagName || !matchUrlPattern(heatmapURL, item.url)) {
                         return;
                     }
                     const { clickPosition, resolution, path } = item;
@@ -670,9 +687,15 @@ html_monitoring = `<!DOCTYPE html>
                 });
             }
 
-            // Main function to initialize the heatmap
             async function initHeatmap() {
-                const heatmapData = await fetchHeatmapData();
+                heatmapData = await fetchHeatmapData();
+            }
+
+            // Main function to initialize the heatmap
+            async function updateHeatmap() {
+                if (!heatmapData) {
+                    return;
+                }
                 drawHeatmap(heatmapData);
 
                 if (!clickedObject) {
@@ -795,10 +818,15 @@ html_monitoring = `<!DOCTYPE html>
                 heatmapURL = document.getElementById('iframe_heatmap_url').value;
             });
 
+            document.getElementById('iframe_url').addEventListener('change', () => {
+                iframe.src = document.getElementById('iframe_url').value;
+            });
+
 
             disableTracking();
             addControlledClicking();
-            setInterval(initHeatmap, 1);
+            initHeatmap();
+            setInterval(updateHeatmap, 1);
         });
     </script>
     <title>Monitoring für UIUX-Framework</title>
@@ -816,7 +844,7 @@ html_monitoring = `<!DOCTYPE html>
 
             <div class="information_card card">
                 <h2>Overview</h2>
-                <input type="text" class="further_information text-input-url" id="iframe_url" value="" disabled>
+                <input type="text" class="further_information text-input-url" id="iframe_url" value="">
                 <input type="text" class="further_information text-input-url" id="iframe_heatmap_url" value="">
 
                 <p class="card_information">click on card to get more information</p>
