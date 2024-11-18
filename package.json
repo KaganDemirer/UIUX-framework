@@ -1,0 +1,14 @@
+{
+  "name": "tracking-server",
+  "version": "1.0.0",
+  "description": "Tracking Server mit automatischer Modulinstallation",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.5.1",
+    "dotenv": "^16.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
