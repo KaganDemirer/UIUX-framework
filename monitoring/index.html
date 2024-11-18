@@ -166,6 +166,66 @@
             width: 4em;
             height: 4em;
         }
+
+        .toggle-container {
+            margin-top: 20px;
+            padding: 10px 0;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #373D55;
+            transition: color 0.2s ease;
+        }
+
+        .toggle-label:hover {
+            color: #4a5275;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            background-color: #e0e0e0;
+            border-radius: 24px;
+            margin-left: 12px;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 44px; /* Mindestgröße für Touch-Ziele nach Apple Guidelines */
+            height: 44px; /* Mindestgröße für Touch-Ziele nach Apple Guidelines */
+        }
+
+        input[type="checkbox"]:checked + .toggle-switch {
+            background-color: #4a5275;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        input[type="checkbox"]:checked + .toggle-switch::before {
+            transform: translateX(24px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
     </style>
     <script>
         let clickedObject = null;
@@ -179,6 +239,7 @@
         let highlightElementFrom = null;
         let highlightElementTo = null;
         let clicksStatistics = {};
+        let showBotPaths = true;
 
         // Wait for the DOM to be loaded
         document.addEventListener('DOMContentLoaded', () => {
@@ -400,8 +461,13 @@
                 return 'green';
             }
 
-            function drawPath(path, target, previousID, clickPosition, resolution) {
-                heatmapCtx.lineWidth = 10;
+            function drawPath(path, target, previousID, clickPosition, resolution, bot) {
+                // Wenn es ein Bot-Pfad ist und Bot-Pfade ausgeblendet sind, zeichne nichts
+                if (bot && !showBotPaths) {
+                    return;
+                }
+
+                heatmapCtx.lineWidth = bot ? 3 : 10; // Dünnere Linie für Bots
                 
                 // Get previous click position and element
                 let startX = 0;
@@ -419,8 +485,10 @@
                     } else {
                         const scrollX = iframe.contentWindow.scrollX;
                         const scrollY = iframe.contentWindow.scrollY;
-                        startX = path[0].x - scrollX;
-                        startY = path[0].y - scrollY;
+                        const width = document.getElementById('width-max').value;
+                        const height = document.getElementById('height-max').value;
+                        startX = width * (path[0].x / resolution.width) - scrollX;
+                        startY = height * (path[0].y / resolution.height) - scrollY;
                     }
                 } else {
                     const scrollX = iframe.contentWindow.scrollX;
@@ -440,12 +508,10 @@
                 const endY = targetRect.top + (clickPosition.relativeClickPosition.y * targetRect.height);
 
                 if (path) {
-                    // Beginne den Pfad am tatsächlichen Startpunkt
                     heatmapCtx.beginPath();
                     heatmapCtx.moveTo(startX, startY);
 
                     path.forEach((point, index) => {
-                        // Convert relative coordinates to absolute
                         const x = startX + (point.xr * (endX - startX));
                         const y = startY + (point.yr * (endY - startY));
 
@@ -456,10 +522,19 @@
                             grid[gridX][gridY]++;
                             let count = grid[gridX][gridY];
                             count = Math.floor(count / 10);
-                            heatmapCtx.strokeStyle = getColor(count);
-                            heatmapCtx.globalAlpha = 0.3 + count/10;
+                            
+                            if (bot) {
+                                // Gestrichelte Linie und dezente Farbe für Bots
+                                heatmapCtx.setLineDash([5, 3]);
+                                heatmapCtx.strokeStyle = 'rgba(128, 128, 128, 0.6)'; // Grau mit Transparenz
+                                heatmapCtx.globalAlpha = 0.4;
+                            } else {
+                                heatmapCtx.setLineDash([]); // Durchgezogene Linie für Menschen
+                                heatmapCtx.strokeStyle = getColor(count);
+                                heatmapCtx.globalAlpha = 0.3 + count/10;
+                            }
                         } else {
-                            heatmapCtx.strokeStyle = 'green';
+                            heatmapCtx.strokeStyle = bot ? 'rgba(128, 128, 128, 0.4)' : 'green';
                             heatmapCtx.globalAlpha = 0.3;
                         }
 
@@ -468,7 +543,58 @@
                         heatmapCtx.beginPath();
                         heatmapCtx.moveTo(x, y);
                     });
+                    
+                    // Reset line dash
+                    heatmapCtx.setLineDash([]);
                 }
+            }
+
+            function isHumanMousePath(path) {
+                // Grundlegende Validierung
+                if (!Array.isArray(path) || path.length < 5) {
+                    return true; // Zu wenig Datenpunkte deuten auf Bot hin
+                }
+
+                let perfectLineCount = 0;
+                let constantSpeedCount = 0;
+                let lastSpeed = null;
+
+                for (let i = 1; i < path.length - 1; i++) {
+                    const prev = path[i - 1];
+                    const curr = path[i];
+                    const next = path[i + 1];
+
+                    // Prüfe auf perfekt gerade Linien
+                    const dx1 = curr.x - prev.x;
+                    const dy1 = curr.y - prev.y;
+                    const dx2 = next.x - curr.x;
+                    const dy2 = next.y - curr.y;
+                    
+                    // Wenn die Richtungsänderung exakt gleich ist
+                    if (Math.abs(dx1 - dx2) < 0.01 && Math.abs(dy1 - dy2) < 0.01) {
+                        perfectLineCount++;
+                    }
+
+                    // Prüfe auf konstante Geschwindigkeit
+                    const timeDiff1 = curr.time - prev.time;
+                    const timeDiff2 = next.time - curr.time;
+                    const speed1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) / timeDiff1;
+                    const speed2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) / timeDiff2;
+
+                    if (lastSpeed !== null && Math.abs(speed1 - lastSpeed) < 0.1) {
+                        constantSpeedCount++;
+                    }
+                    lastSpeed = speed1;
+                }
+
+                // Berechne Prozentsätze der Bot-Indikatoren
+                const perfectLinePercentage = perfectLineCount / (path.length - 2);
+                const constantSpeedPercentage = constantSpeedCount / (path.length - 2);
+
+                // Wenn mehr als 80% der Bewegung perfekt gerade Linien sind
+                // oder mehr als 90% konstante Geschwindigkeit aufweisen,
+                // dann ist es wahrscheinlich ein Bot
+                return perfectLinePercentage > 0.8 || constantSpeedPercentage > 0.9;
             }
 
             // Function to draw the heatmap
@@ -488,7 +614,9 @@
                     }
                     const { clickPosition, resolution, path, previousID, target } = item;
 
-                    drawPath(path, target, previousID, clickPosition, resolution);
+                    const bot = isHumanMousePath(path);
+
+                    drawPath(path, target, previousID, clickPosition, resolution, bot);
                     
                     const element_offset = iframe.contentWindow.document.getElementById(clickedObject.id).getBoundingClientRect();
                     
@@ -844,6 +972,11 @@
             updateSliderRange(widthMin, widthMax, widthValue);
             updateSliderRange(heightMin, heightMax, heightValue);
             updateIframeSize();
+
+            document.getElementById('show-bots').addEventListener('change', function(e) {
+                showBotPaths = e.target.checked;
+                drawHeatmap(heatmapData); // Aktualisiere die Heatmap
+            });
         });
     </script>
     <title>Monitoring für UIUX-Framework</title>
@@ -869,6 +1002,13 @@
                         <input type="range" id="height-min" min="0" max="2160" value="0" class="slider">
                         <input type="range" id="height-max" min="0" max="2160" value="1080" class="slider">
                     </div>
+                </div>
+                <div class="toggle-container">
+                    <label class="toggle-label">
+                        Bot-Pfade anzeigen
+                        <input type="checkbox" id="show-bots" checked>
+                        <span class="toggle-switch"></span>
+                    </label>
                 </div>
             </div>
             <div class="header">
@@ -1189,6 +1329,75 @@ label {
     margin-bottom: 5px;
     color: #373D55;
     font-weight: bold;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.toggle-label {
+    margin-right: 10px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.toggle-switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
 }
 
 </style>
