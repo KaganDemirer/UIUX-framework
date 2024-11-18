@@ -400,7 +400,7 @@
                 return 'green';
             }
 
-            function drawPath(path, target, previousID, clickPosition) {
+            function drawPath(path, target, previousID, clickPosition, resolution) {
                 heatmapCtx.lineWidth = 10;
                 
                 // Get previous click position and element
@@ -425,8 +425,10 @@
                 } else {
                     const scrollX = iframe.contentWindow.scrollX;
                     const scrollY = iframe.contentWindow.scrollY;
-                    startX = path[0].x - scrollX;
-                    startY = path[0].y - scrollY;
+                    const width = document.getElementById('width-max').value;
+                    const height = document.getElementById('height-max').value;
+                    startX = width * (path[0].x / resolution.width) - scrollX;
+                    startY = height * (path[0].y / resolution.height) - scrollY;
                 }
                 
                 // Get current target element and click position
@@ -486,7 +488,7 @@
                     }
                     const { clickPosition, resolution, path, previousID, target } = item;
 
-                    drawPath(path, target, previousID, clickPosition);
+                    drawPath(path, target, previousID, clickPosition, resolution);
                     
                     const element_offset = iframe.contentWindow.document.getElementById(clickedObject.id).getBoundingClientRect();
                     
