@@ -416,7 +416,17 @@
                             startX = previousRect.left + (previousData.clickPosition.relativeClickPosition.x * previousRect.width);
                             startY = previousRect.top + (previousData.clickPosition.relativeClickPosition.y * previousRect.height);
                         }
+                    } else {
+                        const scrollX = iframe.contentWindow.scrollX;
+                        const scrollY = iframe.contentWindow.scrollY;
+                        startX = path[0].x - scrollX;
+                        startY = path[0].y - scrollY;
                     }
+                } else {
+                    const scrollX = iframe.contentWindow.scrollX;
+                    const scrollY = iframe.contentWindow.scrollY;
+                    startX = path[0].x - scrollX;
+                    startY = path[0].y - scrollY;
                 }
                 
                 // Get current target element and click position

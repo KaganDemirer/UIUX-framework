@@ -179,8 +179,8 @@ function initializeTrackingServer(io, app, port) {
 
             function mouseMovementConvertToRelative(mousePath, lastElementPosition, clickedElementPosition) {
                 // Wenn keine letzte Position vorhanden ist, starte bei 0,0
-                const startX = lastElementPosition ? lastElementPosition.x : 0;
-                const startY = lastElementPosition ? lastElementPosition.y : 0;
+                const startX = lastElementPosition.x ? lastElementPosition.x : mousePath[0].x;
+                const startY = lastElementPosition.y ? lastElementPosition.y : mousePath[0].y;
                 
                 // Konvertiere jeden Punkt des Pfades in relative Koordinaten
                 return mousePath.map(point => {
