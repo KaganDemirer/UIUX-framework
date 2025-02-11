@@ -4,19 +4,6 @@ require('dotenv').config();
 
 function initializeTrackingServer(io, app, port) {
     const heatMapFile = path.join(__dirname, 'heat-map.json');
-    let trackConfig = {}
-    // Tracking-Konfigurationsdatei erstellen oder laden
-    if (!fs.existsSync('tracking.conf')) {
-        console.log('Erstelle neue tracking.conf Datei...');
-        const defaultConfig = {
-            resolution: ['1920x1080', '1366x768', '1536x864', '1440x900', '1280x720']
-        };
-        fs.writeFileSync('tracking.conf', JSON.stringify(defaultConfig, null, 2));
-        console.log('tracking.conf Datei wurde erstellt');
-        trackConfig = defaultConfig;
-    } else {
-        trackConfig = JSON.parse(fs.readFileSync('tracking.conf', 'utf8'));
-    }
 
     // Funktion zum sicheren Lesen der JSON-Datei
     function safeReadJSON(filePath) {
@@ -79,6 +66,11 @@ function initializeTrackingServer(io, app, port) {
         socket.on('replaceNextID', (ID, nextID) => {
             console.log('Replace nextID:', ID, nextID);
             replaceNextID(heatMapFile, ID, nextID);
+        });
+
+        socket.on('reportAccessibility', (report) => {
+            console.log('Accessibility report received:', report);
+            // Could store in DB or process further
         });
 
         socket.on('disconnect', () => {
@@ -293,31 +285,6 @@ function initializeTrackingServer(io, app, port) {
 
         res.type('application/javascript');
         res.send(trackingScript);
-    });
-
-    // Neue Hilfsfunktion zum Filtern der Heatmap-Daten nach Auflösung
-    function getHeatmapDataForResolution(resolution) {
-        const [width, height] = resolution.split('x').map(Number);
-        const heatMapData = safeReadJSON(heatMapFile);
-        
-        return heatMapData.filter(data => 
-            data.resolution.width === width && 
-            data.resolution.height === height
-        );
-    }
-
-    // Neuer Endpoint für die Resolutions
-    app.get('/api/resolutions', (req, res) => {
-        try {
-            const config = JSON.parse(fs.readFileSync('tracking.conf', 'utf8'));
-            res.json({
-                resolutions: config.resolution || [],
-                current: config.resolution?.[0] || null
-            });
-        } catch (error) {
-            console.error('Fehler beim Lesen der tracking.conf:', error);
-            res.status(500).json({ error: 'Fehler beim Laden der Auflösungen' });
-        }
     });
 
     return {

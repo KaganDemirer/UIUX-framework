@@ -43,11 +43,16 @@
 
         #uiux-controls {
             flex: 1;
-            background: #FFF;
-            color: white;
-            box-sizing: border-box;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            padding: 20px;
+            border-left: 4px solid #373D55;
+            box-shadow: -2px 0px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 0 8px 8px 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
             overflow-y: auto;
-            border-left: 0.25em solid #373D55;
+            position: relative;
+            z-index: 1;
         }
 
         .linked {
@@ -135,17 +140,17 @@
         }
 
         .card {
-            background: #f9f9f9;
-            padding: 0.5em;
-            margin: 1em;
-            border-radius: 0.5em;
-            box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
-            transition: all 0.1s;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .card:hover {
-            box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
-            transition: all 0.2s;
+            transform: scale(1.01);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         .card_information {
@@ -226,6 +231,120 @@
             transform: translateX(24px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
+
+        .resolution-controls-extra {
+            margin: 1em 0;
+        }
+
+        /* Überschrift anpassen */
+        .header h1 {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #373D55;
+        }
+        
+        /* Schöne Steuerelemente für Buttons und Selector */
+        .resolution-controls-extra,
+        .toggle-container {
+            margin-bottom: 20px;
+        }
+        button,
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            color: #373D55;
+            font-size: 0.9em;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        button:hover,
+        select:hover {
+            background: #f9f9f9;
+            border-color: #a3a3a3;
+        }
+
+        .bar {
+            height: 30px;
+            background-color: var(--accent-color);
+            margin: 10px 0;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .bar:hover {
+            background-color: #5a628a;
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 999999;
+            min-width: 250px;
+            pointer-events: none;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 10px;
+        }
+
+        .popup-row {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .popup-label {
+            font-weight: bold;
+            color: var(--main-color);
+            min-width: 60px;
+        }
+
+        .popup-value {
+            color: #666;
+            word-break: break-all;
+            text-align: right;
+            flex: 1;
+        }
+
+        .popup::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 20px;  /* Feste Position von links */
+            border-width: 10px 10px 0 10px;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+
+        .popup::before {
+            content: '';
+            position: absolute;
+            bottom: -11px;
+            left: 20px;  /* Feste Position von links, gleich wie beim after */
+            border-width: 11px 11px 0 11px;
+            border-style: solid;
+            border-color: #ccc transparent transparent transparent;
+            z-index: -1;
+        }
+
+        .bar-container {
+            position: relative;
+            margin-bottom: 15px;
+            width: 100%;
+        }
     </style>
     <script>
         let clickedObject = null;
@@ -260,24 +379,14 @@
             }
 
             function matchUrlPattern(pattern, url) {
-                // Escape special regex characters except *
-                const escapeRegex = (str) => str.replace(/[.+?^${}()|[]]/g, '$&');
-                
-                // Convert pattern to regex
-                // Replace * with regex pattern that requires at least one character except /
+                const escapeRegex = (str) => str.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
                 const regexPattern = escapeRegex(pattern).replace(/\*/g, '[^/]+');
-                
-                // Create RegExp object with ^$ to ensure full string match
-                const regex = new RegExp(`^${regexPattern}$`);
-                
-                // Zusätzliche Validierung: Prüfe ob die Anzahl der Pfadsegmente übereinstimmt
                 const patternSegments = pattern.split('/').length;
                 const urlSegments = url.split('/').length;
-                
                 if (patternSegments !== urlSegments) {
                     return false;
                 }
-                
+                const regex = new RegExp(`^${regexPattern}$`);
                 return regex.test(url);
             }
 
@@ -346,16 +455,15 @@
                 const averageTime = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
                 const slowestTime = times.length ? Math.max(...times) : 0;
                 const clicks = clickedObjectData.length;
+                const botClicks = clickedObjectData.filter(item => !isHumanMousePath(item.path)).length;
                 mostClickedBefore = getMostClickedBefore(heatmapData, clickedObjectData);
                 mostClickedAfter = getMostClickedAfter(heatmapData, clickedObjectData);
 
-
-                
                 // Update popup content and position
                 document.getElementById('path').textContent = clickedObjectMap.path;
                 document.getElementById('id').textContent = target.id || '-';
                 document.getElementById('class').textContent = target.className || '-';
-                document.getElementById('clicks').textContent = clicks;
+                document.getElementById('clicks').textContent = `${clicks} (Bot: ${botClicks})`;
                 document.getElementById('fastest-time').textContent = (fastestTime / 1000).toFixed(2);
                 document.getElementById('average-time').textContent = (averageTime / 1000).toFixed(2);
                 document.getElementById('slowest-time').textContent = (slowestTime / 1000).toFixed(2);
@@ -524,17 +632,16 @@
                             count = Math.floor(count / 10);
                             
                             if (bot) {
-                                // Gestrichelte Linie und dezente Farbe für Bots
-                                heatmapCtx.setLineDash([5, 3]);
-                                heatmapCtx.strokeStyle = 'rgba(128, 128, 128, 0.6)'; // Grau mit Transparenz
-                                heatmapCtx.globalAlpha = 0.4;
+                                heatmapCtx.setLineDash([]);
+                                heatmapCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+                                heatmapCtx.lineWidth = 10;
                             } else {
-                                heatmapCtx.setLineDash([]); // Durchgezogene Linie für Menschen
+                                heatmapCtx.setLineDash([]);
                                 heatmapCtx.strokeStyle = getColor(count);
                                 heatmapCtx.globalAlpha = 0.3 + count/10;
                             }
                         } else {
-                            heatmapCtx.strokeStyle = bot ? 'rgba(128, 128, 128, 0.4)' : 'green';
+                            heatmapCtx.strokeStyle = bot ? 'rgba(0, 0, 0, 0.6)' : 'green';
                             heatmapCtx.globalAlpha = 0.3;
                         }
 
@@ -550,51 +657,98 @@
             }
 
             function isHumanMousePath(path) {
-                // Grundlegende Validierung
-                if (!Array.isArray(path) || path.length < 5) {
-                    return true; // Zu wenig Datenpunkte deuten auf Bot hin
+                if (!Array.isArray(path) || path.length < 3) {
+                    return false;
                 }
 
-                let perfectLineCount = 0;
-                let constantSpeedCount = 0;
-                let lastSpeed = null;
-
-                for (let i = 1; i < path.length - 1; i++) {
-                    const prev = path[i - 1];
-                    const curr = path[i];
-                    const next = path[i + 1];
-
-                    // Prüfe auf perfekt gerade Linien
-                    const dx1 = curr.x - prev.x;
-                    const dy1 = curr.y - prev.y;
-                    const dx2 = next.x - curr.x;
-                    const dy2 = next.y - curr.y;
+                // Prüfe auf lineare Bewegung durch Berechnung der Abweichung von einer perfekten Linie
+                function checkLinearity(points) {
                     
-                    // Wenn die Richtungsänderung exakt gleich ist
-                    if (Math.abs(dx1 - dx2) < 0.01 && Math.abs(dy1 - dy2) < 0.01) {
-                        perfectLineCount++;
+                    let linearSegments = 0;
+                    let totalSegments = 0;
+                    for (let j = 1; j < points.length - 2; j++) {
+                        // Berechne drei aufeinanderfolgende Steigungen
+                        const dx1 = points[j].x - points[j-1].x;
+                        const dx2 = points[j+1].x - points[j].x;
+                        const dx3 = points[j+2].x - points[j+1].x;
+                        
+                        if (dx1 === 0 || dx2 === 0 || dx3 === 0) continue;
+                        
+                        const slope1 = (points[j].y - points[j-1].y) / dx1;
+                        const slope2 = (points[j+1].y - points[j].y) / dx2;
+                        const slope3 = (points[j+2].y - points[j+1].y) / dx3;
+                        
+                        // Berechne die Ähnlichkeit der Steigungen
+                        const maxSlope = Math.max(Math.abs(slope1), Math.abs(slope2), Math.abs(slope3));
+                        const minSlope = Math.min(Math.abs(slope1), Math.abs(slope2), Math.abs(slope3));
+                        
+                        // Wenn die Steigungen sehr ähnlich sind (nahe 1), ist es verdächtig linear
+                        const slopeSimilarity = minSlope / (maxSlope || 1);
+                        if (slopeSimilarity > 0.8) {
+                            linearSegments++;
+                        }
+                        totalSegments++;
+                    }
+                    isLinear = totalSegments > 0 ? linearSegments / totalSegments : 0;
+                    
+                    if (isLinear) {
+                        linearSegments++;
                     }
 
-                    // Prüfe auf konstante Geschwindigkeit
-                    const timeDiff1 = curr.time - prev.time;
-                    const timeDiff2 = next.time - curr.time;
-                    const speed1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) / timeDiff1;
-                    const speed2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) / timeDiff2;
-
-                    if (lastSpeed !== null && Math.abs(speed1 - lastSpeed) < 0.1) {
-                        constantSpeedCount++;
-                    }
-                    lastSpeed = speed1;
+                    return linearSegments / totalSegments;
                 }
 
-                // Berechne Prozentsätze der Bot-Indikatoren
-                const perfectLinePercentage = perfectLineCount / (path.length - 2);
-                const constantSpeedPercentage = constantSpeedCount / (path.length - 2);
+                // Prüfe auf konstante Zeitintervalle
+                function checkTimeConsistency(points) {
+                    let intervals = [];
+                    for (let i = 1; i < points.length; i++) {
+                        const interval = points[i].time - points[i-1].time;
+                        if (interval > 0) {
+                            intervals.push(interval);
+                        }
+                    }
 
-                // Wenn mehr als 80% der Bewegung perfekt gerade Linien sind
-                // oder mehr als 90% konstante Geschwindigkeit aufweisen,
-                // dann ist es wahrscheinlich ein Bot
-                return perfectLinePercentage > 0.8 || constantSpeedPercentage > 0.9;
+                    if (intervals.length < 2) return 1;
+
+                    // Berechne Standardabweichung der Intervalle
+                    const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                    const variance = intervals.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / intervals.length;
+                    const stdDev = Math.sqrt(variance);
+                    
+                    return stdDev / avg; // Variationskoeffizient
+                }
+
+                // Prüfe auf verdächtig gleichmäßige Bewegung
+                function checkMovementRegularity(points) {
+                    let distances = [];
+                    for (let i = 1; i < points.length; i++) {
+                        const dx = points[i].x - points[i-1].x;
+                        const dy = points[i].y - points[i-1].y;
+                        distances.push(Math.sqrt(dx*dx + dy*dy));
+                    }
+
+                    if (distances.length < 2) return 1;
+
+                    // Berechne Standardabweichung der Abstände
+                    const avg = distances.reduce((a, b) => a + b, 0) / distances.length;
+                    const variance = distances.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / distances.length;
+                    const stdDev = Math.sqrt(variance);
+                    
+                    return stdDev / avg; // Variationskoeffizient
+                }
+
+                const linearityScore = checkLinearity(path);
+                const timeVariation = checkTimeConsistency(path);
+                const movementVariation = checkMovementRegularity(path);
+
+                // Verschärfte Bot-Kriterien
+                const isBot = 
+                    linearityScore > 0.6 ||           // Mehr als 60% linear
+                    timeVariation < 0.3 ||            // Zu konstante Zeitintervalle
+                    movementVariation < 0.25 ||       // Zu gleichmäßige Bewegung
+                    (linearityScore > 0.4 && timeVariation < 0.4); // Kombination aus beiden
+
+                return !isBot;
             }
 
             // Function to draw the heatmap
@@ -614,7 +768,7 @@
                     }
                     const { clickPosition, resolution, path, previousID, target } = item;
 
-                    const bot = isHumanMousePath(path);
+                    const bot = !isHumanMousePath(path);
 
                     drawPath(path, target, previousID, clickPosition, resolution, bot);
                     
@@ -756,6 +910,7 @@
                 clearChart();
                 countClicksOnElement(heatmapData);
                 createBarChart(clicksStatistics);
+                checkIframeAccessibility(); // new call
             });
 
             document.getElementById('iframe_heatmap_url').addEventListener('change', () => {
@@ -780,10 +935,9 @@
                 const container = document.getElementById('chart');
                 const maxValue = Math.max(...Object.values(data).map(item => item.clicks));
                 
-                // Sortieren der Daten nach Werten (absteigend)
                 sortedData = Object.entries(data).sort((a, b) => b[1].clicks - a[1].clicks);
-                
                 sortedData.splice(5);
+                
                 sortedData.forEach(([key, value]) => {
                     const barContainer = document.createElement('div');
                     barContainer.className = 'bar-container';
@@ -801,56 +955,33 @@
                     
                     label.textContent = key;
                     
-                    // Popup Inhalt
                     popup.innerHTML = `
                         <div class="popup-row">
                             <span class="popup-label">Path:</span>
-                            <span class="popup-value">${value.path}</span>
+                            <span class="popup-value">${value.path || '-'}</span>
                         </div>
                         <div class="popup-row">
                             <span class="popup-label">ID:</span>
-                            <span class="popup-value">${value.id}</span>
-                        </div>
-                        <div>
-                            <span class="popup-label">Class:</span>
-                            <span class="popup-value">${value.class}</span>
+                            <span class="popup-value">${value.id || '-'}</span>
                         </div>
                         <div class="popup-row">
-                            <span class="popup-label">ClicksAmount:</span>
+                            <span class="popup-label">Class:</span>
+                            <span class="popup-value">${value.class || '-'}</span>
+                        </div>
+                        <div class="popup-row">
+                            <span class="popup-label">Clicks:</span>
                             <span class="popup-value">${value.clicks}</span>
                         </div>
                     `;
                     
-                    // Event Listener für Hover
-                    bar.addEventListener('mousemove', (e) => {
+                    bar.addEventListener('mouseenter', () => {
                         popup.style.display = 'block';
-                        
-                        // Position des Popups berechnen
-                        const rect = bar.getBoundingClientRect();
-                        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-                        
-                        // Popup über dem Balken positionieren
-                        popup.style.left = `${e.pageX - popup.offsetWidth/2}px`;
-                        popup.style.top = `${rect.top + scrollTop - popup.offsetHeight - 10}px`;
                     });
                     
                     bar.addEventListener('mouseleave', () => {
                         popup.style.display = 'none';
                     });
 
-                    bar.addEventListener('click', () => {
-                        clickedObject = {
-                            path: value.path,
-                            tagName: value.tagName,
-                            id: value.id,
-                            className: value.class,
-                        };
-                        const element = iframe.contentWindow.document.querySelector(value.path);
-                        updateInformation(element);
-                        // scroll to elem
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    });
-                    
                     bar.appendChild(label);
                     barContainer.appendChild(bar);
                     barContainer.appendChild(popup);
@@ -977,7 +1108,124 @@
                 showBotPaths = e.target.checked;
                 drawHeatmap(heatmapData); // Aktualisiere die Heatmap
             });
+
+            // Neue Funktionen: Speichern und Laden von Auflösungen
+            async function saveResolution() {
+                const width = document.getElementById('width-max').value;
+                const height = document.getElementById('height-max').value;
+                try {
+                    await fetch('/save-resolution', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ width, height })
+                    });
+                    loadSavedResolutions();
+                } catch (error) {
+                    console.error('Error saving resolution:', error);
+                }
+            }
+            
+            async function loadSavedResolutions() {
+                try {
+                    const response = await fetch('/saved-resolutions');
+                    const resolutions = await response.json();
+                    const selector = document.getElementById('resolution-selector');
+                    selector.innerHTML = '';
+                    resolutions.forEach((res, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${res.width}px x ${res.height}px`;
+                        selector.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error loading resolutions:', error);
+                }
+            }
+            
+            // Event Listener für den neuen Button
+            document.getElementById('save-resolution-btn').addEventListener('click', saveResolution);
+            
+            // Event Listener für den Selector
+            document.getElementById('resolution-selector').addEventListener('change', event => {
+                // Beim Auswählen: Update der Slider und iFrame Größe
+                const selectedOption = event.target.options[event.target.selectedIndex].textContent;
+                const [width, height] = selectedOption.split(' x ').map(s => s.replace('px','').trim());
+                document.getElementById('width-max').value = width;
+                document.getElementById('height-max').value = height;
+                updateSliderRange(document.getElementById('width-min'), document.getElementById('width-max'), document.getElementById('width-value'));
+                updateSliderRange(document.getElementById('height-min'), document.getElementById('height-max'), document.getElementById('height-value'));
+                updateIframeSize();
+            });
+            
+            // Initialer Aufruf um gespeicherte Auflösungen zu laden
+            loadSavedResolutions();
         });
+
+        // Check the iframe for missing alt/text attributes
+        function checkIframeAccessibility() {
+            const iframe = document.querySelector('iframe');
+            const iframeDoc = iframe.contentWindow.document;
+            let issues = [];
+
+            // Process img elements for alt attribute issues
+            const imgs = Array.from(iframeDoc.querySelectorAll('img'));
+            imgs.forEach(img => {
+            if (!img.hasAttribute('alt') || img.getAttribute('alt') === '') {
+                if (img.id) {
+                issues.push(`Fehler: Fehlender alt-Attribut bei Bild mit id "${img.id}".`);
+                } else {
+                const identifier = img.src ? img.src : img.outerHTML.slice(0, 60) + '...';
+                issues.push(`Fehler: Fehlender alt-Attribut bei Bild. Identifier: ${identifier}`);
+                }
+            }
+            });
+
+            // Check for duplicate alt attribute values in images
+            const altCount = {};
+            imgs.forEach(img => {
+            if (img.hasAttribute('alt')) {
+                const alt = img.getAttribute('alt');
+                // Ignoriere leere Werte, da diese schon als Fehler markiert werden
+                if (alt && alt.trim() !== '') {
+                altCount[alt] = (altCount[alt] || 0) + 1;
+                }
+            }
+            });
+            Object.keys(altCount).forEach(altValue => {
+            if (altCount[altValue] > 1) {
+                issues.push(`Fehler: Dupliziertes alt-Attribut "${altValue}" erscheint ${altCount[altValue]} mal.`);
+            }
+            });
+
+            // Process svg elements for title attribute issues
+            const svgs = Array.from(iframeDoc.querySelectorAll('svg'));
+            svgs.forEach(svg => {
+            if (!svg.getAttribute('title')) {
+                if (svg.id) {
+                issues.push(`Fehler: Fehlendes title-Attribut bei SVG mit id "${svg.id}".`);
+                } else {
+                issues.push(`Fehler: Fehlendes title-Attribut bei SVG.`);
+                }
+            }
+            });
+
+            // Check for duplicate title attribute values in SVGs
+            const titleCount = {};
+            svgs.forEach(svg => {
+            const title = svg.getAttribute('title');
+            if (title && title.trim() !== '') {
+                titleCount[title] = (titleCount[title] || 0) + 1;
+            }
+            });
+            Object.keys(titleCount).forEach(titleValue => {
+            if (titleCount[titleValue] > 1) {
+                issues.push(`Fehler: Dupliziertes title-Attribut "${titleValue}" erscheint ${titleCount[titleValue]} mal.`);
+            }
+            });
+
+            const list = document.getElementById('accessibility-issues');
+            list.innerHTML = issues.length ? issues.map(i => `<li>${i}</li>`).join('') : '<li>Keine Probleme gefunden</li>';
+        }
     </script>
     <title>Monitoring für UIUX-Framework</title>
 </head>
@@ -988,7 +1236,7 @@
             <canvas id="heatmap"></canvas>
         </div>
         <div id="uiux-controls">
-            <div id="resolution-controls" class="resolution-controls">
+            <section id="resolution-controls" class="resolution-controls"></section>
                 <div class="slider-container">
                     <label>Breite: <span id="width-value">800px - 1920px</span></label>
                     <div class="slider-group">
@@ -1003,6 +1251,13 @@
                         <input type="range" id="height-max" min="0" max="2160" value="1080" class="slider">
                     </div>
                 </div>
+                <!-- Neue Steuerelemente für Auflösungen -->
+                <div class="resolution-controls-extra">
+                    <button id="save-resolution-btn">Auflösung speichern</button>
+                    <select id="resolution-selector">
+                        <option value="">-- Gespeicherte Auflösungen --</option>
+                    </select>
+                </div>
                 <div class="toggle-container">
                     <label class="toggle-label">
                         Bot-Pfade anzeigen
@@ -1010,45 +1265,59 @@
                         <span class="toggle-switch"></span>
                     </label>
                 </div>
-            </div>
-            <div class="header">
-                <h1>UIUX Monitoring</h1>
-            </div>
+            </section>
 
-            <div class="information_card card">
+            <header class="header">
+                <h1>UIUX Monitoring</h1>
+            </header>
+
+            <section class="information_card card">
                 <h2>Overview</h2>
                 <input type="text" class="further_information text-input-url" id="iframe_url" value="">
                 <input type="text" class="further_information text-input-url" id="iframe_heatmap_url" value="">
+                <p class="card_information">Click on card to get more information</p>
+            </section>
 
-                <p class="card_information">click on card to get more information</p>
-            </div>
-
-            <div class="information_card card">
+            <section class="information_card card">
                 <h2>Element Information</h2>
                 <p><strong>Path:</strong> <span id="path">-</span></p>
                 <p class="further_information"><strong>ID:</strong> <span id="id">-</span></p>
                 <p class="further_information"><strong>Class:</strong> <span id="class">-</span></p>
                 <p><strong>Clicks:</strong> <span id="clicks">-</span></p>
-                <p class="further_information"><strong>Fastest time to click element:</strong> <span id="fastest-time">-</span> s</p>
-                <p><strong>Average time to click element:</strong> <span id="average-time">-</span> s</p>
-                <p class="further_information"><strong>Slowest time to click element:</strong> <span id="slowest-time">-</span> s</p>
+                <p class="further_information"><strong>Fastest time to click:</strong> <span id="fastest-time">-</span> s</p>
+                <p class="further_information"><strong>Average time to click:</strong> <span id="average-time">-</span> s</p>
+                <p class="further_information"><strong>Slowest time to click:</strong> <span id="slowest-time">-</span> s</p>
                 <p class="further_information"><strong>Most came from:</strong> <span id="most-clicked-before">-</span></p>
                 <p class="further_information"><strong>Most go to:</strong> <span id="most-clicked-after">-</span></p>
+                <p class="card_information">Click on card to get more information</p>
+            </section>
 
-                <p class="card_information">click on card to get more information</p>
-            </div>
-
-            <div class="information_card card">
+            <section class="information_card card">
                 <h2>Clicks Statistics</h2>
                 <div class="chart-container" id="chart"></div>
-            </div>
+            </section>
+
+            <section class="information_card card">
+                <h2>Accessibility Analysis</h2>
+                <ul id="accessibility-issues"></ul>
+            </section>
         </div>
     </div>
 </body>
 <style>
+:root {
+    --main-color: #373D55;
+    --accent-color: #4a5275;
+    --background-light: #f9f9f9;
+    --white: #ffffff;
+    --text-color: #373D55;
+    --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 * {
+    box-sizing: border-box;
     font-family: Arial, sans-serif;
-    color: #373D55;
+    color: var(--text-color);
 }
 
 body, html {
@@ -1056,6 +1325,7 @@ body, html {
     padding: 0;
     height: 100%;
     overflow: hidden;
+    background: var(--white);
 }
 
 .uiux {
@@ -1076,18 +1346,257 @@ body, html {
     width: 100%;
     height: 100%;
     border: none;
-    background: white;
-    max-width: 100%;
-    max-height: 100%;
+    background: var(--white);
 }
 
 #uiux-controls {
     flex: 1;
-    background: #FFF;
-    color: white;
-    box-sizing: border-box;
+    background: var(--white);
+    padding: 20px;
     overflow-y: auto;
-    border-left: 0.25em solid #373D55;
+    border-left: 4px solid var(--main-color);
+    position: relative;
+    z-index: 1;
+}
+
+.header {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2em;
+    color: var(--main-color);
+}
+
+.card {
+    background: var(--background-light);
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: scale(1.01);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.card_information {
+    font-size: 0.9em;
+    color: #6B6C6C;
+    text-align: right;
+    margin-top: 10px;
+}
+
+.slider-container {
+    margin-bottom: 20px;
+}
+
+.slider-container label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.slider-group {
+    position: relative;
+    height: 40px;
+}
+
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #ddd;
+    outline: none;
+    border-radius: 2px;
+    margin: 0;
+    position: absolute;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--main-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--white);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--main-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--white);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.toggle-label {
+    font-weight: bold;
+    color: var(--main-color);
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    background-color: #e0e0e0;
+    border-radius: 12px;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--white);
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+input[type="checkbox"] {
+    opacity: 0;
+    width: 48px;
+    height: 24px;
+    position: absolute;
+}
+
+input[type="checkbox"]:checked + .toggle-switch {
+    background-color: var(--accent-color);
+}
+
+input[type="checkbox"]:checked + .toggle-switch::before {
+    transform: translateX(24px);
+}
+
+.chart-container {
+    font-family: Arial, sans-serif;
+    padding: 20px 0;
+}
+
+.bar {
+    height: 30px;
+    background-color: var(--accent-color);
+    margin: 10px 0;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.bar:hover {
+    background-color: #5a628a;
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.bar-label {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--white);
+    font-weight: bold;
+}
+
+.popup {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 100000;
+    min-width: 250px;
+    pointer-events: none;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
+}
+
+.popup-row {
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.popup-label {
+    font-weight: bold;
+    color: var(--main-color);
+    min-width: 60px;
+}
+
+.popup-value {
+    color: #666;
+    word-break: break-all;
+    text-align: right;
+    flex: 1;
+}
+
+.popup::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 10px 0 10px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+}
+
+.popup::before {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 11px 11px 0 11px;
+    border-style: solid;
+    border-color: #ccc transparent transparent transparent;
+    z-index: -1;
+}
+
+#accessibility-issues {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#accessibility-issues li {
+    background: #f1f1f1;
+    border-left: 4px solid var(--main-color);
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
 }
 
 .linked {
@@ -1099,306 +1608,10 @@ body, html {
     text-decoration: underline;
 }
 
-#heatmap {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-    max-width: 100%;
-    max-height: 100%;
-}
-
-.element-highlight {
-    position: absolute;
-    border: 2px solid rgba(128, 128, 128, 0.8);
-    background: rgba(128, 128, 128, 0.1);
-    pointer-events: none;
-    z-index: 2;
-}
-
-.element-highlight-before {
-    position: absolute;
-    border: 2px solid rgba(0, 255, 0, 0.8);
-    background: rgba(0, 255, 0, 0.1);
-    pointer-events: none;
-    z-index: 2;
-}
-
-.element-highlight-after {
-    position: absolute;
-    border: 2px solid rgba(255, 0, 0, 0.8);
-    background: rgba(255, 0, 0, 0.1);
-    pointer-events: none;
-    z-index: 2;
-}
-
-.element-popup {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    pointer-events: none;
-    z-index: 3;
-    max-width: 300px;
-    word-wrap: break-word;
-}
-
-.element-popup::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 0 10px 10px 10px;
-    border-style: solid;
-    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
-}
-
-h1 {
-    margin-top: 0;
-    font-size: 2em;
-    width: 100%;
-    text-align: center;
-}
-
-h2 {
-    font-size: 1.25em;
-    margin-top: 0;
-    margin-bottom: 1em;
-    width: 100%;
-    border-bottom: 1px solid #6B6C6C;
-}
-
-.card {
-    background: #f9f9f9;
-    padding: 0.5em;
-    margin: 1em;
-    border-radius: 0.5em;
-    box-shadow: 0 0 1em rgba(0, 0, 0, 0.2);
-}
-
-.card_information {
-    font-size: 0.5em;
-    color: #6B6C6C;
-    text-align: right;
-    width: 100%;
-}
-.chart-container {
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    max-width: 800px;
-}
-
-.bar {
-    height: 30px;
-    background-color: #4CAF50;
-    margin: 5px 0;
-    transition: width 0.3s ease;
+.bar-container {
     position: relative;
-    border-radius: 3px;
-}
-
-.bar-label {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: white;
-    font-size: 14px;
-}
-
-.bar-value {
-    position: absolute;
-    right: -40px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #333;
-    font-size: 14px;
-}
-
-.popup {
-    position: absolute;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    display: none;
-    z-index: 100;
-    min-width: 200px;
-    pointer-events: none;
-}
-
-.popup-row {
-    margin: 5px 0;
-    display: flex;
-    justify-content: space-between;
-}
-
-.popup-label {
-    color: #666;
-    font-weight: bold;
-}
-
-.popup-value {
-    color: #333;
-}
-
-.bar {
-    cursor: pointer;
-}
-
-
-.header {
     width: 100%;
-    margin-bottom: 1em;
+    margin-bottom: 15px;
 }
-
-.controls {
-    margin: 10px;
-    padding: 10px;
-    background-color: #f5f5f5;
-    border-radius: 4px;
-}
-
-#resolutionSelect {
-    padding: 5px;
-    margin: 5px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-}
-
-.resolution-controls {
-    padding: 15px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    margin: 10px;
-}
-
-.slider-container {
-    margin: 15px 0;
-}
-
-.slider-group {
-    position: relative;
-    height: 40px;
-}
-
-.slider {
-    position: absolute;
-    width: 100%;
-    pointer-events: none;
-    appearance: none;
-    height: 2px;
-    background: #ddd;
-    outline: none;
-    margin: 0;
-    padding: 0;
-}
-
-.slider::-webkit-slider-thumb {
-    pointer-events: auto;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #373D55;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.slider::-moz-range-thumb {
-    pointer-events: auto;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #373D55;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
-    color: #373D55;
-    font-weight: bold;
-}
-
-.toggle-container {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.toggle-label {
-    margin-right: 10px;
-}
-
-.toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-}
-
-.toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-switch .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    -webkit-transition: .4s;
-    transition: .4s;
-}
-
-.toggle-switch .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    -webkit-transition: .4s;
-    transition: .4s;
-}
-
-input:checked + .slider {
-    background-color: #2196F3;
-}
-
-input:focus + .slider {
-    box-shadow: 0 0 1px #2196F3;
-}
-
-input:checked + .slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
-    transform: translateX(26px);
-}
-
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
 </style>
 </html>
